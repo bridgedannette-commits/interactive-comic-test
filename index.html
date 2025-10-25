@@ -114,5 +114,72 @@
 				start();
 		})());
     </script>
+
+<script>
+(function() {
+  // --- Настройки ---
+  const STORAGE_PREFIX = 'ispring_slide_seen_';
+  
+  // селектор активного слайда в iSpring 11
+  const ACTIVE_SLIDE_SELECTOR = '.sp-slide.current'; // стандартный класс iSpring 11
+  
+  // селектор потенциально анимированных элементов
+  const ANIM_ELEMENTS_SELECTOR = '[data-anim-index], .sp-anim'; // iSpring добавляет data-anim-index
+  
+  function getActiveSlide() {
+    return document.querySelector(ACTIVE_SLIDE_SELECTOR);
+  }
+  
+  function getSlideId(slideEl) {
+    if (!slideEl) return null;
+    return slideEl.dataset.slideIndex || slideEl.id || ('slide_' + Math.random().toString(36).slice(2,8));
+  }
+  
+  function markSlideSeen(slideId) {
+    try { localStorage.setItem(STORAGE_PREFIX + slideId, '1'); } catch(e){}
+  }
+  
+  function isSlideSeen(slideId) {
+    try { return localStorage.getItem(STORAGE_PREFIX + slideId) === '1'; } catch(e){return false;}
+  }
+  
+  function revealSlideAnimations(slideEl) {
+    if (!slideEl) return;
+    const nodes = slideEl.querySelectorAll(ANIM_ELEMENTS_SELECTOR);
+    nodes.forEach(el => {
+      el.style.transition = 'none';
+      el.style.opacity = '1';
+      el.style.transform = 'none';
+      el.style.visibility = 'visible';
+      if (window.getComputedStyle(el).display === 'none') el.style.display = 'block';
+    });
+  }
+
+  let lastSlideId = null;
+  
+  function checkSlide() {
+    const slide = getActiveSlide();
+    if (!slide) return;
+    const sid = getSlideId(slide);
+    if (!sid || sid === lastSlideId) return;
+    lastSlideId = sid;
+    
+    if (isSlideSeen(sid)) {
+      // повторный просмотр → показываем элементы сразу
+      setTimeout(() => revealSlideAnimations(slide), 50);
+    } else {
+      // первый просмотр → пометим как просмотренный через 2 секунды
+      setTimeout(() => markSlideSeen(sid), 2000);
+    }
+  }
+  
+  // наблюдение и периодическая проверка
+  document.addEventListener('DOMContentLoaded', function() {
+    setInterval(checkSlide, 300);
+    checkSlide();
+  });
+})();
+</script>
 </body>
+
 </html>
